@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import numpy as np
 
+
 class _CNN(nn.Module):
     def __init__(self, config):
         super(_CNN, self).__init__()
@@ -18,24 +19,30 @@ class _CNN(nn.Module):
         self.stride = (1, 1)
         self.padding = (1, 0)
         self.cnn = nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding)
+
     def forward(self, embedding):
         return self.cnn(embedding)
+
 
 class _PiecePooling(nn.Module):
     def __init__(self):
         super(_PiecePooling, self).__init__()
+
     def forward(self, x, mask, hidden_size):
         mask = torch.unsqueeze(mask, 1)
-        x, _ = torch.max(mask + x, dim = 2)
+        x, _ = torch.max(mask + x, dim=2)
         x = x - 100
-        return x.view(-1, hidden_size * 3) 
+        return x.view(-1, hidden_size * 3)
+
 
 class _MaxPooling(nn.Module):
     def __init__(self):
         super(_MaxPooling, self).__init__()
+
     def forward(self, x, hidden_size):
-        x, _ = torch.max(x, dim = 2)
+        x, _ = torch.max(x, dim=2)
         return x.view(-1, hidden_size)
+
 
 class PCNN(nn.Module):
     def __init__(self, config):
@@ -45,12 +52,14 @@ class PCNN(nn.Module):
         self.mask = None
         self.cnn = _CNN(config)
         self.pooling = _PiecePooling()
-	self.activation = nn.ReLU()
+        self.activation = nn.ReLU()
+
     def forward(self, embedding):
-        embedding = torch.unsqueeze(embedding, dim = 1)
+        embedding = torch.unsqueeze(embedding, dim=1)
         x = self.cnn(embedding)
         x = self.pooling(x, self.mask, self.config.hidden_size)
-	return self.activation(x)
+        return self.activation(x)
+
 
 class CNN(nn.Module):
     def __init__(self, config):
@@ -61,9 +70,9 @@ class CNN(nn.Module):
         self.cnn = _CNN(config)
         self.pooling = _MaxPooling()
         self.activation = nn.ReLU()
+
     def forward(self, embedding):
-        embedding = torch.unsqueeze(embedding, dim = 1)
+        embedding = torch.unsqueeze(embedding, dim=1)
         x = self.cnn(embedding)
         x = self.pooling(x, self.config.hidden_size)
         return self.activation(x)
-

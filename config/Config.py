@@ -1,5 +1,5 @@
-#coding:utf-8
-import torch 
+# coding:utf-8
+import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
@@ -12,8 +12,13 @@ import json
 import sys
 import sklearn.metrics
 
-def to_var(x):
-    return Variable(torch.from_numpy(x).cuda())
+
+def to_var(x, gpu=False):
+    if gpu:
+        return Variable(torch.from_numpy(x).cuda())
+    else:
+        return Variable(torch.from_numpy(x))
+
 
 class Accuracy(object):
 
@@ -40,7 +45,8 @@ class Accuracy(object):
 class Config(object):
 
     def __init__(self):
-	self.acc_NA = Accuracy()
+        self.acc_NA = Accuracy()
+
         self.acc_not_NA = Accuracy()
         self.acc_total = Accuracy()
         self.export_path = './data'
@@ -64,80 +70,80 @@ class Config(object):
         self.is_training = True
         self.use_bag = True
         self.trainModel = None
-        self.gpu = True
+        self.gpu = True  # True
 
     def set_export_path(self, export_path):
-    	self.export_path = export_path
+        self.export_path = export_path
 
     def set_max_length(self, max_length):
-    	self.max_length = max_length
+        self.max_length = max_length
 
     def set_pos_num(self, pos_num):
-    	self.pos_num = pos_num
+        self.pos_num = pos_num
 
     def set_num_classes(self, num_classes):
-    	self.num_classes = num_classes
+        self.num_classes = num_classes
 
     def set_hidden_size(self, hidden_size):
-    	self.hidden_size = hidden_size
+        self.hidden_size = hidden_size
 
     def set_window_size(self, window_size):
         self.window_size = window_size
-        
+
     def set_pos_size(self, pos_size):
-    	self.pos_size = pos_size
+        self.pos_size = pos_size
 
     def set_word_size(self, word_size):
-    	self.word_size = word_size
+        self.word_size = word_size
 
     def set_max_epoch(self, max_epoch):
-    	self.max_epoch = max_epoch
+        self.max_epoch = max_epoch
 
     def set_batch_size(self, batch_size):
-    	self.batch_size = batch_size
+        self.batch_size = batch_size
 
     def set_opt_method(self, opt_method):
-    	self.opt_method = opt_method
+        self.opt_method = opt_method
 
     def set_learning_rate(self, learning_rate):
-    	self.learning_rate = learning_rate
+        self.learning_rate = learning_rate
 
     def set_weight_decay(self, weight_decay):
-    	self.weight_decay = weight_decay
+        self.weight_decay = weight_decay
 
     def set_drop_prob(self, drop_prob):
-    	self.drop_prob = drop_prob
+        self.drop_prob = drop_prob
 
     def set_checkpoint_dir(self, checkpoint_dir):
-    	self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_dir = checkpoint_dir
 
     def set_test_result_dir(self, test_result_dir):
-    	self.test_result_dir = test_result_dir
+        self.test_result_dir = test_result_dir
 
     def set_save_epoch(self, save_epoch):
-    	self.save_epoch = save_epoch
+        self.save_epoch = save_epoch
 
     def set_pretrain_model(self, pretrain_model):
-    	self.pretrain_model = pretrain_model
+        self.pretrain_model = pretrain_model
 
     def set_is_training(self, is_training):
-    	self.is_training = is_training
+        self.is_training = is_training
 
     def set_use_bag(self, use_bag):
-    	self.use_bag = use_bag
+        self.use_bag = use_bag
 
     def set_epoch_range(self, epoch_range):
         self.epoch_range = epoch_range
-    
-    def set_gpu(self, True):
+
+    def set_gpu(self, gpu=True):
         self.gpu = gpu
 
     def load_train_data(self):
-    	print('reading training data...')
+        print('reading training data...')
         self.data_word_vec = np.load(os.path.join(self.export_path, 'vec.npy'))
         self.data_instance_triple = np.load(os.path.join(self.export_path, 'train_instance_triple.npy'))
         self.data_instance_scope = np.load(os.path.join(self.export_path, 'train_instance_scope.npy'))
-	self.data_instance_label = np.load(os.path.join(self.export_path, 'train_instance_label.npy'))
+        self.data_instance_label = np.load(os.path.join(self.export_path, 'train_instance_label.npy'))
         self.data_train_length = np.load(os.path.join(self.export_path, 'train_len.npy'))
         self.data_train_label = np.load(os.path.join(self.export_path, 'train_label.npy'))
         self.data_train_word = np.load(os.path.join(self.export_path, 'train_word.npy'))
@@ -176,52 +182,54 @@ class Config(object):
         print('relations        : %d' % (self.num_classes))
         print('word size        : %d' % (self.word_size))
         print('position size     : %d' % (self.pos_size))
-        print('hidden size        : %d' % (self.hidden_size))    
+        print('hidden size        : %d' % (self.hidden_size))
 
     def init(self):
-    	if self.is_training:
-    	    self.load_train_data()
-    	    if self.use_bag:
-    	        self.train_order = list(range(len(self.data_instance_triple)))
-    	    else:
-    	        self.train_order = list(range(len(self.data_train_word)))
+        if self.is_training:
+            self.load_train_data()
+            if self.use_bag:
+                self.train_order = list(range(len(self.data_instance_triple)))
+            else:
+                self.train_order = list(range(len(self.data_train_word)))
             self.nbatches = int(len(self.data_instance_triple) / float(self.batch_size))
-    	else:
-    	    self.load_test_data()
+        else:
+            self.load_test_data()
             self.nbatches = int(len(self.data_instance_scope) / self.batch_size)
 
     def set_train_model(self, model):
-    	print('initializing training model...')
+        print('initializing training model...')
         self.model = model
-        self.trainModel = self.model(config = self)
+        self.trainModel = self.model(config=self)
         if self.pretrain_model != "None":
             self.trainModel.load_state_dict(torch.load(self.pretrain_model))
-        self.trainModel.cuda()
+        if self.gpu:
+            self.trainModel.cuda()
         if self.optimizer != None:
             pass
         elif self.opt_method == "Adagrad" or self.opt_method == "adagrad":
             self.optimizer = optim.Adagrad(self.trainModel.parameters(), lr=self.learning_rate, lr_decay=self.lr_decay, weight_decay=self.weight_decay)
         elif self.opt_method == "Adadelta" or self.opt_method == "adadelta":
-            self.optimizer = optim.Adadelta(self.trainModel.parameters(), lr=self.learning_rate, weight_decay = self.weight_decay)
+            self.optimizer = optim.Adadelta(self.trainModel.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         elif self.opt_method == "Adam" or self.opt_method == "adam":
-            self.optimizer = optim.Adam(self.trainModel.parameters(), lr=self.learning_rate, weight_decay = self.weight_decay)
+            self.optimizer = optim.Adam(self.trainModel.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         else:
-            self.optimizer = optim.SGD(self.trainModel.parameters(), lr=self.learning_rate, weight_decay = self.weight_decay)
+            self.optimizer = optim.SGD(self.trainModel.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         print('initializing finished')
 
     def set_test_model(self, model):
         print('initializing test model...')
         self.model = model
-        self.testModel = self.model(config = self)
-        self.testModel.cuda()
+        self.testModel = self.model(config=self)
+        if self.gpu:
+            self.testModel.cuda()
         self.testModel.eval()
         print('initializing finished')
 
     def sampling(self, batch):
-    	if self.use_bag:
-    	    input_scope = np.take(self.data_instance_scope, self.train_order[batch * self.batch_size : (batch + 1) * self.batch_size], axis = 0)
-	    input_label = np.take(self.data_instance_label, self.train_order[batch * self.batch_size : (batch + 1) * self.batch_size], axis = 0)
-    	    index = []
+        if self.use_bag:
+            input_scope = np.take(self.data_instance_scope, self.train_order[batch * self.batch_size: (batch + 1) * self.batch_size], axis=0)
+            input_label = np.take(self.data_instance_label, self.train_order[batch * self.batch_size: (batch + 1) * self.batch_size], axis=0)
+            index = []
             scope = [0]
             weights = []
             for num in input_scope:
@@ -251,25 +259,25 @@ class Config(object):
         self.batch_scope = scope
 
     def train_one_step(self):
-    	self.trainModel.embedding.word = to_var(self.batch_word)
-    	self.trainModel.embedding.pos1 = to_var(self.batch_pos1)
-    	self.trainModel.embedding.pos2 = to_var(self.batch_pos2)
-    	self.trainModel.encoder.mask = to_var(self.batch_mask)
-    	self.trainModel.encoder.length = to_var(self.batch_length)
-    	self.trainModel.selector.scope = self.batch_scope
-    	self.trainModel.selector.attention_query = to_var(self.batch_attention_query)
-    	self.trainModel.classifier.label = to_var(self.batch_label)
+        self.trainModel.embedding.word = to_var(self.batch_word)
+        self.trainModel.embedding.pos1 = to_var(self.batch_pos1)
+        self.trainModel.embedding.pos2 = to_var(self.batch_pos2)
+        self.trainModel.encoder.mask = to_var(self.batch_mask)
+        self.trainModel.encoder.length = to_var(self.batch_length)
+        self.trainModel.selector.scope = self.batch_scope
+        self.trainModel.selector.attention_query = to_var(self.batch_attention_query)
+        self.trainModel.classifier.label = to_var(self.batch_label)
         self.optimizer.zero_grad()
-    	loss , _output = self.trainModel()
+        loss, _output = self.trainModel()
         loss.backward()
         self.optimizer.step()
-    	for i, prediction in enumerate(_output):
+        for i, prediction in enumerate(_output):
             if self.batch_label[i] == 0:
-                self.acc_NA.add(prediction == self.batch_label[i])
+                self.acc_NA.add(prediction == torch.from_numpy(np.expand_dims(self.batch_label[i], axis=0)))
             else:
-                self.acc_not_NA.add(prediction == self.batch_label[i])
-            self.acc_total.add(prediction == self.batch_label[i])
-        return loss.data[0]
+                self.acc_not_NA.add(prediction == torch.from_numpy(np.expand_dims(self.batch_label[i], axis=0)))
+            self.acc_total.add(prediction == torch.from_numpy(np.expand_dims(self.batch_label[i], axis=0)))
+        return loss.item()
 
     def test_one_step(self):
         self.testModel.embedding.word = to_var(self.batch_word)
@@ -280,21 +288,21 @@ class Config(object):
         self.testModel.selector.scope = self.batch_scope
         return self.testModel.test()
 
-
     def train(self):
-    	if not os.path.exists(self.checkpoint_dir):
-    	    os.mkdir(self.checkpoint_dir)
-    	for epoch in range(self.max_epoch):
-    	    print('epoch '+ str(epoch) + ' starts...')
-    	    self.acc_NA.clear()
-    	    self.acc_not_NA.clear()
-    	    self.acc_total.clear()
-    	    np.random.shuffle(self.train_order)
-    	    for batch in range(self.nbatches):
-    	    	self.sampling(batch)
-    		loss = self.train_one_step()
+        if not os.path.exists(self.checkpoint_dir):
+            os.mkdir(self.checkpoint_dir)
+        for epoch in range(self.max_epoch):
+            print('epoch ' + str(epoch) + ' starts...')
+            self.acc_NA.clear()
+            self.acc_not_NA.clear()
+            self.acc_total.clear()
+            np.random.shuffle(self.train_order)
+            for batch in range(self.nbatches):
+                self.sampling(batch)
+                loss = self.train_one_step()
                 time_str = datetime.datetime.now().isoformat()
-                sys.stdout.write("epoch %d step %d time %s | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (epoch, batch, time_str, loss, self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\n')
+                sys.stdout.write("epoch %d step %d time %s | loss : %f, NA accuracy: %f, not NA accuracy: %f, total accuracy %f" % (
+                    epoch, batch, time_str, loss, self.acc_NA.get(), self.acc_not_NA.get(), self.acc_total.get()) + '\n')
                 sys.stdout.flush()
             if (epoch + 1) % self.save_epoch == 0:
                 print('epoch ' + str(epoch + 1) + ' has finished')
@@ -320,7 +328,7 @@ class Config(object):
             stack_output = []
             stack_label = []
             test_result = []
-            total_recall = 0 
+            total_recall = 0
             for batch in range(self.nbatches):
                 self.get_test_batch(batch)
                 self.test_output = self.test_one_step()
@@ -335,7 +343,7 @@ class Config(object):
                 if batch % 100 == 0:
                     sys.stdout.write('predicting {} / {}\n'.format(batch, self.nbatches))
                     sys.stdout.flush()
-            
+
             print('\nevaluating...')
 
             sorted_test_result = sorted(test_result, key=lambda x: x[2])
